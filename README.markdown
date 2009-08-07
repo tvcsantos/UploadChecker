@@ -9,7 +9,9 @@ Compliance is indicated by outputing on the java swing the results
 
 Install
 =====
-Just use one of the installers provided according to your OS
+Just use one of the installers below according to your OS
+http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4.sh
+http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4.exe
 
 Usage
 =====
