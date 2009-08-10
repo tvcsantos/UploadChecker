@@ -11,10 +11,10 @@ Install
 =====
 Just use one of the installers below according to your OS
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4.sh)
+[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4a.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4a.sh)
 
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4.exe)
+[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4a.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4a.exe)
 
 Usage
 =====

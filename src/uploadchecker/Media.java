@@ -72,8 +72,8 @@ public class Media {
         Report rep = new Report(file);
         rep.add("cabac", "Not Found");
         rep.add("ref", "Not Found");
-        rep.add("vbv_maxrate", "Not Found");
-        rep.add("vbv_bufsize", "Not Found");
+        rep.add("vbv_maxrate", "Not Found. Assuming valid");
+        rep.add("vbv_bufsize", "Not Found. Assuming valid");
         rep.add("analyse", "Not Found");
         rep.add("rc", "Not Found");
         rep.add("me_range", "Not Found");
@@ -85,6 +85,7 @@ public class Media {
         rep.add("subtitle", "Not Found");
         rep.add("audio", "Not Found");
         rep.add("width/height","Not Found");
+        rep.add("frame rate","Not Found");
 
         int cabac = -Integer.MAX_VALUE;
         int ref = -Integer.MAX_VALUE;
@@ -100,6 +101,7 @@ public class Media {
         int deblockb = -Integer.MAX_VALUE;
         String me = null;
         int subme = -Integer.MAX_VALUE;
+        double frameRate = -Double.MAX_VALUE;
 
         int cref = 3;
         int[] cdeblocka = {-3, -1};
@@ -154,16 +156,12 @@ public class Media {
         }
 
         value = videoInfo.get("vbv_maxrate", true);
-        if (value == null) {
-            check[0]++;
-        } else {
+        if (value != null) {
             vbv_maxrate = Integer.parseInt(value);
         }
 
         value = videoInfo.get("vbv_bufsize", true);
-        if (value == null) {
-            check[0]++;
-        } else {
+        if (value != null) {
             vbv_bufsize = Integer.parseInt(value);
         }
 
@@ -240,6 +238,14 @@ public class Media {
             subme = Integer.parseInt(value);
         }
 
+        value = videoInfo.get("frame rate",false);
+        if (value == null) {
+            check[0]++;
+        } else {
+            frameRate =
+                Double.parseDouble(value.replace("fps","").replace(" ",""));
+        }
+
         if (iwidth != width) {
             check[0]++;
             rep.add("width/height","Failed. Expecting width = " + width +
@@ -283,7 +289,8 @@ public class Media {
         } else {
             rep.add("vbv_bufsize", "Passed");
         }
-        if (analyse.compareTo("0x3:0x113") != 0) {
+        if (analyse == null) ;
+        else if (analyse.compareTo("0x3:0x113") != 0) {
             check[0]++;
             rep.add("analyse", "Failed. Expecting " +
                     "analyse = 0x3:0x113 found analyse = " +
@@ -291,7 +298,8 @@ public class Media {
         } else {
             rep.add("analyse", "Passed");
         }
-        if (rc.compareTo("crf") != 0 &&
+        if (rc == null) ;
+        else if (rc.compareTo("crf") != 0 &&
                 rc.compareTo("2-pass") != 0 &&
                 rc.compareTo("2pass") != 0) {
             check[0]++;
@@ -342,7 +350,8 @@ public class Media {
         } else {
             rep.add("deblock", "Passed");
         }
-        if (me.compareTo("dia") == 0) {
+        if (me == null) ;
+        else if (me.compareTo("dia") == 0) {
             check[0]++;
             rep.add("me", "Failed. Expecting me != dia/hex found " +
                     "me = " + me);
@@ -364,6 +373,18 @@ public class Media {
                     "subme = " + subme);
         } else {
             rep.add("subme", "Passed");
+        }
+        if (frameRate == -Double.MAX_VALUE) ;
+        else if (frameRate != 23.976 &&
+                    frameRate != 24 &&
+                        frameRate != 25 &&
+                            frameRate != 29.970) {
+            check[0]++;
+            rep.add("frame rate","Failed. " +
+                    "Expecting frame rate = 23.976/24/25/29.970 " +
+                    "found frame rate = " + frameRate);
+        } else {
+            rep.add("frame rate", "Passed");
         }
 
         // Audio Check
