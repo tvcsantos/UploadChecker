@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package uploadchecker;
 
 import java.io.BufferedReader;
@@ -17,8 +13,6 @@ import java.util.List;
  * @author camon
  */
 public class Media {
-
-    public static Runtime runtime = Runtime.getRuntime();
 
     public static enum Type {
 
@@ -36,6 +30,7 @@ public class Media {
     private List<Audio> audioInfoList;
     private List<Text> textInfoList;
     private String formatedInfo;
+    private List<String> originalLanguages;
 
     public Media(String file) throws IOException {
         this.file = new File(file);
@@ -44,7 +39,12 @@ public class Media {
         audioInfoList = new LinkedList<Audio>();
         textInfoList = new LinkedList<Text>();
         formatedInfo = null;
+        originalLanguages = null;
         load();
+    }
+
+    public File getFile() {
+        return file;
     }
 
     public String toFormatedString() {
@@ -64,6 +64,10 @@ public class Media {
         return formatedInfo;
     }
 
+    public void setOriginalLanguages(List<String> originalLanguages) {
+        this.originalLanguages = originalLanguages;
+    }
+    
     public Report check(Type type) {
         // Video Check
         String swidth = videoInfo.get("width", false);
@@ -86,6 +90,7 @@ public class Media {
         rep.add("audio", "Not Found");
         rep.add("width/height","Not Found");
         rep.add("frame rate","Not Found");
+        rep.setMediaInfoOutput(formatedInfo);
 
         int cabac = -Integer.MAX_VALUE;
         int ref = -Integer.MAX_VALUE;
@@ -388,15 +393,80 @@ public class Media {
         }
 
         // Audio Check
-        boolean audio = false;
-        for (Audio a : audioInfoList) {
-            Object format = a.get("format");
+        //boolean audio = false;
+        if (audioInfoList.size() > 2) {
+            check[0]++;
+            rep.add("audio", "Failed. More than 2 audio tracks found");
+        } else if (audioInfoList.isEmpty()) {
+            check[0]++;
+            rep.add("audio", "Failed. No audio tracks found");
+        } else { // >= 1 <= 2
+            boolean audio = true;
+            for (Audio a : audioInfoList) {
+                String format = a.get("format");
+                if (format == null ||
+                        (format.compareToIgnoreCase("DTS") != 0
+                        && format.compareToIgnoreCase("AC-3") != 0)) {
+                    audio = false;
+                    break;
+                }
+            }
+            if (!audio) {
+                check[0]++;
+                rep.add("audio", "Failed. No DTS or AC-3 audio tracks found");
+            } else {
+                // CHECK ORIGINAL AUDIO
+                if (originalLanguages == null ||
+                        originalLanguages.isEmpty())
+                {
+                    // CAN'T FIND ORIGINAL AUDIO
+                    rep.add("audio", "Warning. Can't determine original audio");
+                } else {
+                    int count = 0;
+                    int countNoLang = 0;
+                    for (Audio a : audioInfoList) {
+                        String lang = a.get("language");
+                        if (lang == null) {
+                            // NO LANG FOUND
+                            countNoLang++;
+                        } else {
+                            boolean isOriginal = false;
+                            for (String l : originalLanguages) {
+                                if (l.compareToIgnoreCase(lang) == 0) {
+                                    isOriginal = true;
+                                    break;
+                                }
+                            }
+                            if (isOriginal) {
+                                count++;
+                            }
+                        }
+                    }
+                    if (countNoLang > 0) {
+                        rep.add("audio", "Warning. Can't find tracks language");
+                    }
+                    else if (count == audioInfoList.size())
+                    {
+                        // ALL TRACKS ORIGINAL
+                        rep.add("audio", "Passed");
+                    } else
+                    {
+                        // (audioInfoList.size() - count) WITH NO ORIGINAL AUDIO
+                        int failed = audioInfoList.size() - count;
+                        rep.add("audio", "Failed. " + failed +
+                                (failed > 1 ? " tracks" : " track") +
+                                " with no original audio");
+                    }
+                }
+            }
+        }
+        /*for (Audio a : audioInfoList) {
+            String format = a.get("format");
             if (format == null) {
                 continue;
             }
-            String sformat = (String) format;
-            if (sformat.compareToIgnoreCase("DTS") == 0
-                    || sformat.compareToIgnoreCase("AC-3") == 0) {
+            if (format.compareToIgnoreCase("DTS") == 0
+                    || format.compareToIgnoreCase("AC-3") == 0) {
                 audio = true;
                 break;
             }
@@ -407,7 +477,7 @@ public class Media {
             rep.add("audio", "Failed. No DTS or AC-3 audio tracks found");
         } else if (audio) {
             rep.add("audio", "Passed");
-        }
+        }*/
 
         // Text Check
         boolean text = false;
@@ -446,14 +516,13 @@ public class Media {
     }
 
     private void load() throws IOException {
-        String path = (new File(this.getClass().getProtectionDomain().
-                getCodeSource().getLocation().getFile()).getParent() +
+        String path = (new File(UploadCheckerApp.APP_LOCATION.getFile()).getParent() +
                 "\\prog\\MediaInfo.exe").replace("%20", " ");
         String osl = System.getProperty("os.name").toLowerCase();
         if (!osl.contains("windows")) {
             path = "mediainfo";
         }
-        Process proc = runtime.exec(
+        Process proc = UploadCheckerApp.APP_RUNTIME.exec(
                 new String[]{path, this.file.getAbsolutePath()});
         InputStream inputstream = proc.getInputStream();
         InputStreamReader inputstreamreader = new InputStreamReader(
@@ -521,7 +590,7 @@ public class Media {
                                         cont.substring(0, indexEq).trim();
                                 String rightEnc =
                                         cont.substring(indexEq + 1).trim();
-                                videoInfo.putEnc(leftEnc, rightEnc);
+                                videoInfo.putEncoding(leftEnc, rightEnc);
                             }
                         }
                     } else if (audio) {

@@ -1,14 +1,12 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package uploadchecker;
 
 /**
- *
- * @author camon
+ * This class represents Text information
+ * of a text track at MediaInfo output.
+ * @author Tiago Santos
+ * 
+ * @see AbstractInfo
+ * @version 1.0
+ * @since JDK 1.6
  */
-public class Text extends AbstractInfo {
-
-}
+public class Text extends AbstractInfo { }

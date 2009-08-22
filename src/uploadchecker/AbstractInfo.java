@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package uploadchecker;
 
 import java.util.HashMap;
@@ -13,7 +8,7 @@ import java.util.Map.Entry;
  *
  * @author camon
  */
-public abstract class AbstractInfo {
+public abstract class AbstractInfo implements Info {
     protected Map<String,String> map;
 
     public AbstractInfo() {

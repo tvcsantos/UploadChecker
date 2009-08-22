@@ -4,7 +4,10 @@
 
 package uploadchecker;
 
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.event.ItemEvent;
+import java.awt.image.BufferedImage;
 import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,13 +16,16 @@ import org.jdesktop.application.Action;
 import org.jdesktop.application.SingleFrameApplication;
 import org.jdesktop.application.FrameView;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.URL;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.StringTokenizer;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+import javax.imageio.ImageIO;
 import javax.swing.DefaultListModel;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -41,22 +47,64 @@ public class UploadCheckerView extends FrameView {
         
         initComponents();
 
-        dirPath = (new File(this.getClass().getProtectionDomain().getCodeSource()
-            .getLocation().getFile()).getParent()).replace("%20"," ");
+        getFrame().setResizable(false);
+
+        settingsDir = new File(UploadCheckerApp.USER_HOME,
+                                UploadCheckerApp.SETTINGS_DIR);
+        if (!settingsDir.exists()) settingsDir.mkdir();
 
         try {
-            ObjectInputStream ois = new ObjectInputStream(
-                    new FileInputStream(dirPath + "\\" + "settings.db"));
-            url = (String) ois.readObject();
+            settings = Persistent.resurrect(settingsDir.getAbsolutePath()
+                                + "\\" + "settings.db", Settings.class);
         } catch (Exception ex) {
-            url = null;
+            settings = new Settings();
         }
 
+        String url = settings.getAnnounceURL();
         announceTextField.setText(url == null ? "" : url);
 
-        this.getFrame().setTitle("Upload Checker");
+        getFrame().setTitle("Upload Checker");
+
+        movieSearchDialog.setModal(true);
+        movieSearchDialog.setResizable(false);
+        movieSearchDialog.setTitle("Movie Search");
+        movieSearchDialog.pack();
         
-        fileList.setModel(new DefaultListModel());
+        Dimension dim = searchResScrollPane.getSize();
+        maxImgWidth = (int)
+            (movieSearchDialog.getSize().getWidth() - (dim.getWidth() + 20));
+        maxImgHeight = (int) dim.getHeight() - 20;
+        imgLabel.setText("");
+        setImgIcon(MISSING_ICON);
+        searchTextField.setText("");
+        movieFrameState = IDLE;
+        
+        imgsCache = new ImageCache();
+
+        repCache = new ReportCache();
+
+        try {
+            searchCache = Persistent.loadCache(settingsDir.getAbsolutePath()
+                                    + "\\search.cache", SearchCache.class, 
+                                    SIZE_5MB);
+        } catch(Exception e) {
+            
+        }
+
+        try {
+            languageCache = Persistent.loadCache(settingsDir.getAbsolutePath()
+                                    + "\\langs.cache", LanguageCache.class,
+                                    SIZE_5MB);
+        } catch(Exception e) {
+
+        }
+
+        DefaultListModel dlm = (DefaultListModel) filterList.getModel();
+        dlm.clear();
+        List<String> filters = settings.getNameFilters();
+        for (String s : filters) dlm.addElement(s);
+
+        settingsDialog.pack();
     }
 
     @Action
@@ -67,6 +115,20 @@ public class UploadCheckerView extends FrameView {
             aboutBox.setLocationRelativeTo(mainFrame);
         }
         UploadCheckerApp.getApplication().show(aboutBox);
+    }
+
+    @Action
+    private void showSearchDialog() {
+        movieSearchDialog.setModal(true);
+        movieSearchDialog.setLocationRelativeTo(getFrame());
+        movieSearchDialog.setVisible(true);
+    }
+
+    @Action
+    private void showSettingsDialog() {
+        settingsDialog.setModal(true);
+        settingsDialog.setLocationRelativeTo(getFrame());
+        settingsDialog.setVisible(true);
     }
 
     /** This method is called from within the constructor to
@@ -92,19 +154,35 @@ public class UploadCheckerView extends FrameView {
         javax.swing.JMenuItem exitMenuItem = new javax.swing.JMenuItem();
         optionsMenu = new javax.swing.JMenu();
         mediaInfoCheckBoxMenuItem = new javax.swing.JCheckBoxMenuItem();
+        originalAudioCheckBoxMenuItem = new javax.swing.JCheckBoxMenuItem();
+        jSeparator1 = new javax.swing.JSeparator();
         settingsMenuItem = new javax.swing.JMenuItem();
         javax.swing.JMenu helpMenu = new javax.swing.JMenu();
         javax.swing.JMenuItem aboutMenuItem = new javax.swing.JMenuItem();
         fileChooser = new javax.swing.JFileChooser();
-        settingsFrame = new javax.swing.JFrame();
-        announceLabel = new javax.swing.JLabel();
-        announceTextField = new javax.swing.JTextField();
         torrFrame = new javax.swing.JFrame();
         progressBar = new javax.swing.JProgressBar();
         taskLabel = new javax.swing.JLabel();
         mediaInfoFrame = new javax.swing.JFrame();
         mediaInfoScrollPane = new javax.swing.JScrollPane();
         mediaInfoTextArea = new javax.swing.JTextArea();
+        movieSearchDialog = new javax.swing.JDialog();
+        searchResScrollPane = new javax.swing.JScrollPane();
+        searchResList = new javax.swing.JList();
+        imgLabel = new javax.swing.JLabel();
+        selectButton = new javax.swing.JButton();
+        notFoundButton = new javax.swing.JButton();
+        searchTextField = new javax.swing.JTextField();
+        searchButton = new javax.swing.JButton();
+        settingsDialog = new javax.swing.JDialog();
+        announceLabel = new javax.swing.JLabel();
+        announceTextField = new javax.swing.JTextField();
+        filterScrollPane = new javax.swing.JScrollPane();
+        filterList = new javax.swing.JList();
+        addFilterButton = new javax.swing.JButton();
+        removeFilterButton = new javax.swing.JButton();
+        filterTextField = new javax.swing.JTextField();
+        filterLabel = new javax.swing.JLabel();
 
         mainPanel.setName("mainPanel"); // NOI18N
 
@@ -127,6 +205,7 @@ public class UploadCheckerView extends FrameView {
 
         filesScrollPane.setName("filesScrollPane"); // NOI18N
 
+        fileList.setModel(new DefaultListModel());
         fileList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         fileList.setName("fileList"); // NOI18N
         fileList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
@@ -216,6 +295,15 @@ public class UploadCheckerView extends FrameView {
         });
         optionsMenu.add(mediaInfoCheckBoxMenuItem);
 
+        originalAudioCheckBoxMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_L, java.awt.event.InputEvent.CTRL_MASK));
+        originalAudioCheckBoxMenuItem.setSelected(true);
+        originalAudioCheckBoxMenuItem.setText(resourceMap.getString("originalAudioCheckBoxMenuItem.text")); // NOI18N
+        originalAudioCheckBoxMenuItem.setName("originalAudioCheckBoxMenuItem"); // NOI18N
+        optionsMenu.add(originalAudioCheckBoxMenuItem);
+
+        jSeparator1.setName("jSeparator1"); // NOI18N
+        optionsMenu.add(jSeparator1);
+
         settingsMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_MASK));
         settingsMenuItem.setText(resourceMap.getString("settingsMenuItem.text")); // NOI18N
         settingsMenuItem.setName("settingsMenuItem"); // NOI18N
@@ -238,45 +326,6 @@ public class UploadCheckerView extends FrameView {
         menuBar.add(helpMenu);
 
         fileChooser.setName("fileChooser"); // NOI18N
-
-        settingsFrame.setTitle(resourceMap.getString("settingsFrame.title")); // NOI18N
-        settingsFrame.setName("settingsFrame"); // NOI18N
-        settingsFrame.setResizable(false);
-        settingsFrame.addWindowListener(new java.awt.event.WindowAdapter() {
-            public void windowClosing(java.awt.event.WindowEvent evt) {
-                settingsFrameWindowClosing(evt);
-            }
-        });
-
-        announceLabel.setText(resourceMap.getString("announceLabel.text")); // NOI18N
-        announceLabel.setName("announceLabel"); // NOI18N
-
-        announceTextField.setText(resourceMap.getString("announceTextField.text")); // NOI18N
-        announceTextField.setToolTipText(resourceMap.getString("announceTextField.toolTipText")); // NOI18N
-        announceTextField.setName("announceTextField"); // NOI18N
-
-        javax.swing.GroupLayout settingsFrameLayout = new javax.swing.GroupLayout(settingsFrame.getContentPane());
-        settingsFrame.getContentPane().setLayout(settingsFrameLayout);
-        settingsFrameLayout.setHorizontalGroup(
-            settingsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(settingsFrameLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(announceLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 77, Short.MAX_VALUE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(announceTextField, javax.swing.GroupLayout.DEFAULT_SIZE, 102, Short.MAX_VALUE)
-                .addContainerGap())
-        );
-        settingsFrameLayout.setVerticalGroup(
-            settingsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(settingsFrameLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(settingsFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(settingsFrameLayout.createSequentialGroup()
-                        .addGap(6, 6, 6)
-                        .addComponent(announceLabel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addComponent(announceTextField))
-                .addContainerGap())
-        );
 
         torrFrame.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         torrFrame.setName("torrFrame"); // NOI18N
@@ -335,6 +384,181 @@ public class UploadCheckerView extends FrameView {
             .addComponent(mediaInfoScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
         );
 
+        movieSearchDialog.setName("movieSearchDialog"); // NOI18N
+        movieSearchDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                movieSearchDialogWindowClosing(evt);
+            }
+        });
+
+        searchResScrollPane.setName("searchResScrollPane"); // NOI18N
+
+        searchResList.setModel(new DefaultListModel());
+        searchResList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        searchResList.setName("searchResList"); // NOI18N
+        searchResList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+            public void valueChanged(javax.swing.event.ListSelectionEvent evt) {
+                searchResListValueChanged(evt);
+            }
+        });
+        searchResScrollPane.setViewportView(searchResList);
+
+        imgLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        imgLabel.setText(resourceMap.getString("imgLabel.text")); // NOI18N
+        imgLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        imgLabel.setName("imgLabel"); // NOI18N
+
+        selectButton.setText(resourceMap.getString("selectButton.text")); // NOI18N
+        selectButton.setName("selectButton"); // NOI18N
+        selectButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                selectButtonActionPerformed(evt);
+            }
+        });
+
+        notFoundButton.setText(resourceMap.getString("notFoundButton.text")); // NOI18N
+        notFoundButton.setName("notFoundButton"); // NOI18N
+        notFoundButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                notFoundButtonActionPerformed(evt);
+            }
+        });
+
+        searchTextField.setName("searchTextField"); // NOI18N
+
+        searchButton.setText(resourceMap.getString("searchButton.text")); // NOI18N
+        searchButton.setName("searchButton"); // NOI18N
+        searchButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                searchButtonActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout movieSearchDialogLayout = new javax.swing.GroupLayout(movieSearchDialog.getContentPane());
+        movieSearchDialog.getContentPane().setLayout(movieSearchDialogLayout);
+        movieSearchDialogLayout.setHorizontalGroup(
+            movieSearchDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(movieSearchDialogLayout.createSequentialGroup()
+                .addGroup(movieSearchDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(movieSearchDialogLayout.createSequentialGroup()
+                        .addComponent(searchResScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(imgLabel))
+                    .addGroup(movieSearchDialogLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(selectButton, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(notFoundButton, javax.swing.GroupLayout.PREFERRED_SIZE, 83, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(searchButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(searchTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 286, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap())
+        );
+        movieSearchDialogLayout.setVerticalGroup(
+            movieSearchDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(movieSearchDialogLayout.createSequentialGroup()
+                .addGroup(movieSearchDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(searchResScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 309, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(movieSearchDialogLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(imgLabel)))
+                .addGap(12, 12, 12)
+                .addGroup(movieSearchDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE, false)
+                    .addComponent(selectButton)
+                    .addComponent(notFoundButton)
+                    .addComponent(searchButton)
+                    .addComponent(searchTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
+
+        settingsDialog.setTitle(resourceMap.getString("settingsDialog.title")); // NOI18N
+        settingsDialog.setName("settingsDialog"); // NOI18N
+        settingsDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                settingsDialogWindowClosing(evt);
+            }
+        });
+
+        announceLabel.setText(resourceMap.getString("announceLabel.text")); // NOI18N
+        announceLabel.setName("announceLabel"); // NOI18N
+
+        announceTextField.setText(resourceMap.getString("announceTextField.text")); // NOI18N
+        announceTextField.setToolTipText(resourceMap.getString("announceTextField.toolTipText")); // NOI18N
+        announceTextField.setName("announceTextField"); // NOI18N
+
+        filterScrollPane.setName("filterScrollPane"); // NOI18N
+
+        filterList.setModel(new DefaultListModel());
+        filterList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        filterList.setName("filterList"); // NOI18N
+        filterScrollPane.setViewportView(filterList);
+
+        addFilterButton.setText(resourceMap.getString("addFilterButton.text")); // NOI18N
+        addFilterButton.setName("addFilterButton"); // NOI18N
+        addFilterButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                addFilterButtonActionPerformed(evt);
+            }
+        });
+
+        removeFilterButton.setText(resourceMap.getString("removeFilterButton.text")); // NOI18N
+        removeFilterButton.setName("removeFilterButton"); // NOI18N
+        removeFilterButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                removeFilterButtonActionPerformed(evt);
+            }
+        });
+
+        filterTextField.setText(resourceMap.getString("filterTextField.text")); // NOI18N
+        filterTextField.setName("filterTextField"); // NOI18N
+
+        filterLabel.setText(resourceMap.getString("filterLabel.text")); // NOI18N
+        filterLabel.setName("filterLabel"); // NOI18N
+
+        javax.swing.GroupLayout settingsDialogLayout = new javax.swing.GroupLayout(settingsDialog.getContentPane());
+        settingsDialog.getContentPane().setLayout(settingsDialogLayout);
+        settingsDialogLayout.setHorizontalGroup(
+            settingsDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(settingsDialogLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(settingsDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(settingsDialogLayout.createSequentialGroup()
+                        .addComponent(announceLabel)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(announceTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 351, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(filterLabel)
+                    .addComponent(filterScrollPane, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 429, Short.MAX_VALUE)
+                    .addGroup(settingsDialogLayout.createSequentialGroup()
+                        .addComponent(addFilterButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(filterTextField, javax.swing.GroupLayout.DEFAULT_SIZE, 295, Short.MAX_VALUE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(removeFilterButton)))
+                .addContainerGap())
+        );
+        settingsDialogLayout.setVerticalGroup(
+            settingsDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(settingsDialogLayout.createSequentialGroup()
+                .addGroup(settingsDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, settingsDialogLayout.createSequentialGroup()
+                        .addContainerGap()
+                        .addComponent(announceTextField))
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, settingsDialogLayout.createSequentialGroup()
+                        .addGap(17, 17, 17)
+                        .addComponent(announceLabel)))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(filterLabel)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(filterScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 177, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(settingsDialogLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(addFilterButton)
+                    .addComponent(removeFilterButton)
+                    .addComponent(filterTextField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap())
+        );
+
         setComponent(mainPanel);
         setMenuBar(menuBar);
     }// </editor-fold>//GEN-END:initComponents
@@ -367,12 +591,51 @@ public class UploadCheckerView extends FrameView {
             try {
                 DefaultListModel model = (DefaultListModel) fileList.getModel();
                 String s = (String) model.get(index);
-                Media med = new Media(s);
 
-                Report res = med.check(getCurrentType());
-                textArea.setText(res.toFormatedString());
-                mediaInfoTextArea.setText(med.getFormatedInfo());
-            } catch (IOException ex) {
+                File f = new File(s);
+                Pair<File, Media.Type> pair = new Pair<File, Media.Type>(f,getCurrentType());
+                Report rep = repCache.get(pair);
+                if (rep == null) {
+                if (!originalAudioCheckBoxMenuItem.isSelected()) {
+                    Media med = new Media(s);
+                    Report res = med.check(getCurrentType());
+                    textArea.setText(res.toFormatedString());
+                    mediaInfoTextArea.setText(res.getMediaInfoOutput());
+                    repCache.put(pair, res);
+                }
+                else {
+                    String name = new File(s).getName().toLowerCase();
+                    name = name.replace(".mkv", "");
+                    DefaultListModel dlm =
+                            (DefaultListModel) filterList.getModel();
+                    Enumeration<?> enume = dlm.elements();
+                    while(enume.hasMoreElements()) {
+                        int pos = name.indexOf(
+                                ((String)enume.nextElement()).toLowerCase());
+                        if (pos < 0) continue;
+                        name = name.substring(0, pos);
+                        break;
+                    }
+                    String replaced = name;
+                    StringTokenizer st = new StringTokenizer(replaced, " .-");
+                    String formated = "";
+                    while(st.hasMoreTokens()) {
+                        String token = st.nextToken();
+                        formated += token + " ";
+                    }
+                    formated = formated.trim();
+                    searchTextField.setText(formated);
+
+                    currentFile = s;
+
+                    showSearchDialog();
+
+                }
+                } else {
+                    textArea.setText(rep.toFormatedString());
+                    mediaInfoTextArea.setText(rep.getMediaInfoOutput());
+                }
+            } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this.getFrame(), ex.toString(),
                     "ERROR!", JOptionPane.ERROR_MESSAGE);
             }
@@ -384,13 +647,11 @@ public class UploadCheckerView extends FrameView {
     }//GEN-LAST:event_comboBoxItemStateChanged
 
     private void settingsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_settingsMenuItemActionPerformed
-        settingsFrame.setVisible(true);
-        settingsFrame.pack();
-        settingsFrame.setLocationRelativeTo(this.getFrame());
+        showSettingsDialog();
 }//GEN-LAST:event_settingsMenuItemActionPerformed
 
     private void createButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createButtonActionPerformed
-        URL url = null;
+        URL aurl = null;
         if (announceTextField.getText() == null ||
                 announceTextField.getText().trim().length() == 0) {
             JOptionPane.showMessageDialog(UploadCheckerView.this.getFrame(),
@@ -399,7 +660,7 @@ public class UploadCheckerView extends FrameView {
             return;
         } else {
             try {
-                url = new URL(announceTextField.getText());
+                aurl = new URL(announceTextField.getText());
             } catch (MalformedURLException ex) {
                 JOptionPane.showMessageDialog(UploadCheckerView.this.getFrame(),
                         "Malformed URL",
@@ -408,10 +669,10 @@ public class UploadCheckerView extends FrameView {
             }
         }
 
-        final URL announceURL = url;
+        final URL announceURL = aurl;
 
         fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        int returnVal = fileChooser.showOpenDialog(this.getComponent());
+        int returnVal = fileChooser.showOpenDialog(this.getFrame());
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             final File file = fileChooser.getSelectedFile();
 
@@ -483,20 +744,6 @@ public class UploadCheckerView extends FrameView {
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 }//GEN-LAST:event_createButtonActionPerformed
 
-    private void settingsFrameWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_settingsFrameWindowClosing
-        if (announceTextField.getText() != null) {
-            try {
-                FileOutputStream fos = new FileOutputStream(dirPath + "\\" + "settings.db");
-                ObjectOutputStream oos = new ObjectOutputStream(fos);
-                String trim = announceTextField.getText().trim();
-                url = trim;
-                oos.writeObject(url);
-                fos.close();
-                oos.close();
-            } catch (Exception ex) { }
-        }
-    }//GEN-LAST:event_settingsFrameWindowClosing
-
     private void mediaInfoFrameWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_mediaInfoFrameWindowClosing
         mediaInfoCheckBoxMenuItem.setSelected(false);
     }//GEN-LAST:event_mediaInfoFrameWindowClosing
@@ -509,7 +756,218 @@ public class UploadCheckerView extends FrameView {
         } else mediaInfoFrame.setVisible(false);
 }//GEN-LAST:event_mediaInfoCheckBoxMenuItemItemStateChanged
 
+    private void searchResListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_searchResListValueChanged
+        if (evt == null || evt.getValueIsAdjusting()) return;
+        int index = searchResList.getSelectedIndex();
+        if (index < 0) return ;
+        DefaultListModel dlm = (DefaultListModel) searchResList.getModel();
+        final SearchResult sr = (SearchResult) dlm.get(index);
+        if (sr.imgURL == null) {
+            setImgIcon(MISSING_ICON);
+        } else {
+            try {
+                URL imgURL = imgsCache.get(sr.movieID);
+                if (imgURL == null) {
+                    setImgIcon(MISSING_ICON);
+                } else {
+                    BufferedImage img = ImageIO.read(imgURL);
+                    setImgIcon(new ImageIcon(img));
+                }
+            } catch (Exception e) {
+            }
+        }
+    }//GEN-LAST:event_searchResListValueChanged
+
+    private void searchButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_searchButtonActionPerformed
+        String text = searchTextField.getText();
+        if (text == null || text.length() <= 0) return;
+        //if (!checkMovieFrameState(IDLE)) return ;
+        setMovieFrameState(SEARCHING);
+        setImgIcon(MISSING_ICON);
+        movieSearchDialog.setTitle("Movie Search [searching]");
+        try {
+            final DefaultListModel dlm =
+                    (DefaultListModel) searchResList.getModel();
+            dlm.clear();
+            final String id = text.replace(" ", "+").trim();
+            List<SearchResult> sres = searchCache.get(id);
+            if (sres == null) {
+                new Thread() {
+                    @Override
+                    public void run() {
+                        try {
+                            List<SearchResult> sres = TMDbSearch.search(id);
+                            searchCache.put(id, sres);
+                            Persistent.persist(settingsDir.getAbsolutePath() +
+                                    "\\search.cache", searchCache);
+                            dlm.clear();
+                            for (SearchResult sr : sres) {
+                                dlm.addElement(sr);
+                            }
+                            setMovieFrameState(IDLE);
+                            movieSearchDialog.setTitle("Movie Search");
+                            if (!sres.isEmpty()) {
+                                JOptionPane.showMessageDialog(
+                                        movieSearchDialog,
+                                        sres.size() + (sres.size() > 1 ?
+                                            " Results" : " Result") + " Found",
+                                "Done!", JOptionPane.INFORMATION_MESSAGE);
+                                downloadImages(sres,10,2);
+                            } else {
+                                JOptionPane.showMessageDialog(
+                                        movieSearchDialog,
+                                        "Nothing Found",
+                                "Done!", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                            //new DownloadImagesThread(sres).start();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }.start();
+            } else {
+                for (SearchResult sr : sres) {
+                    dlm.addElement(sr);
+                }
+                setMovieFrameState(IDLE);
+                movieSearchDialog.setTitle("Movie Search");
+                //new DownloadImagesThread(sres).start();
+                if (!sres.isEmpty()) {
+                    JOptionPane.showMessageDialog(
+                                        movieSearchDialog,
+                                        sres.size() + (sres.size() > 1 ?
+                                            " Results" : " Result") + " Found",
+                                "Done!", JOptionPane.INFORMATION_MESSAGE);
+                    downloadImages(sres,10,2);
+                } else {
+                    JOptionPane.showMessageDialog(
+                                        movieSearchDialog,
+                                        "Nothing Found",
+                                "Done!", JOptionPane.INFORMATION_MESSAGE);
+                    
+                }
+            }
+        } catch (Exception e) {
+            
+        }
+    }//GEN-LAST:event_searchButtonActionPerformed
+
+    private void notFoundButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_notFoundButtonActionPerformed
+        //if (!checkMovieFrameState(IDLE)) return ;
+        System.out.println(evt);
+        if (currentFile == null) return;
+        try {
+            Media med = new Media(currentFile);
+            Report res = med.check(getCurrentType());
+            textArea.setText(res.toFormatedString());
+            mediaInfoTextArea.setText(res.getMediaInfoOutput());
+            repCache.put(new Pair<File, Media.Type>(med.getFile(),
+                    getCurrentType()), res);
+        } catch(Exception e) {
+        }
+        searchResList.setSelectedIndex(-1);
+        DefaultListModel dlm = (DefaultListModel) searchResList.getModel();
+        dlm.clear();
+        setImgIcon(MISSING_ICON);
+        searchTextField.setText("");
+        movieSearchDialog.setVisible(false);
+    }//GEN-LAST:event_notFoundButtonActionPerformed
+
+    private void selectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selectButtonActionPerformed
+        if (currentFile == null) return;
+        //if (!checkMovieFrameState(IDLE)) return;
+        final int index = searchResList.getSelectedIndex();
+        if (index < 0) return;
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    setMovieFrameState(SELECTING);
+                    movieSearchDialog.setTitle("Movie Search [selecting]");
+                    DefaultListModel dlm =
+                            (DefaultListModel) searchResList.getModel();
+                    Media med = new Media(currentFile);
+                    movieSearchDialog.setTitle(
+                            "Movie Search [fetching original languages]");
+                    SearchResult m = (SearchResult) dlm.get(index);
+                    List<String> langs = languageCache.get(m.movieID);
+                    if (langs == null) {
+                        langs =
+                            TMDbSearch.getOriginalLanguages(m);
+                        languageCache.put(m.movieID, langs);
+                        Persistent.persist(settingsDir.getAbsolutePath()
+                                    + "\\langs.cache", languageCache);
+                    }
+                    med.setOriginalLanguages(langs);
+                    Report res = med.check(getCurrentType());
+                    textArea.setText(res.toFormatedString());
+                    mediaInfoTextArea.setText(res.getMediaInfoOutput());
+                    repCache.put(new Pair<File, Media.Type>(med.getFile(),
+                    getCurrentType()), res);
+                    searchResList.setSelectedIndex(-1);
+                    dlm.clear();
+                    setImgIcon(MISSING_ICON);
+                    searchTextField.setText("");
+                    movieSearchDialog.setVisible(false);
+                    movieSearchDialog.setTitle("Movie Search");
+                    setMovieFrameState(IDLE);
+                } catch (Exception e) {
+                }
+            }
+        }.start();
+        
+    }//GEN-LAST:event_selectButtonActionPerformed
+
+    private void addFilterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addFilterButtonActionPerformed
+        String text = filterTextField.getText();
+        if (text == null) return;
+        text = text.toLowerCase().trim();
+        if (text.length() <= 0) return;
+        DefaultListModel dlm = (DefaultListModel) filterList.getModel();
+        if (!dlm.contains(text)) {
+            dlm.addElement(text);
+            settings.addNameFilter(text);
+            try {
+                Persistent.persist(settingsDir.getAbsolutePath()
+                                    + "\\settings.db", settings);
+            } catch (Exception ex) {
+
+            }
+        }
+    }//GEN-LAST:event_addFilterButtonActionPerformed
+
+    private void removeFilterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeFilterButtonActionPerformed
+        int index = filterList.getSelectedIndex();
+        if (index < 0) return;
+        DefaultListModel dlm = (DefaultListModel) filterList.getModel();
+        Object remove = dlm.remove(index);
+        String toRemove = null;
+        if (remove != null) toRemove = (String) remove;
+        settings.removeNameFilter(toRemove);
+        try {
+            Persistent.persist(settingsDir.getAbsolutePath()
+                                + "\\settings.db", settings);
+        } catch (Exception ex) {
+        }
+    }//GEN-LAST:event_removeFilterButtonActionPerformed
+
+    private void movieSearchDialogWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_movieSearchDialogWindowClosing
+        notFoundButtonActionPerformed(null);
+    }//GEN-LAST:event_movieSearchDialogWindowClosing
+
+    private void settingsDialogWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_settingsDialogWindowClosing
+        if (announceTextField.getText() != null) {
+            try {
+                String trim = announceTextField.getText().trim();
+                settings.setAnnounceURL(trim);
+                Persistent.persist(settingsDir.getAbsolutePath() +
+                        "\\" + "settings.db", settings);
+            } catch (Exception ex) { }
+        }
+    }//GEN-LAST:event_settingsDialogWindowClosing
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton addFilterButton;
     private javax.swing.JMenuItem addMenuItem;
     private javax.swing.JLabel announceLabel;
     private javax.swing.JTextField announceTextField;
@@ -518,17 +976,32 @@ public class UploadCheckerView extends FrameView {
     private javax.swing.JFileChooser fileChooser;
     private javax.swing.JList fileList;
     private javax.swing.JScrollPane filesScrollPane;
+    private javax.swing.JLabel filterLabel;
+    private javax.swing.JList filterList;
+    private javax.swing.JScrollPane filterScrollPane;
+    private javax.swing.JTextField filterTextField;
+    private javax.swing.JLabel imgLabel;
+    private javax.swing.JSeparator jSeparator1;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JCheckBoxMenuItem mediaInfoCheckBoxMenuItem;
     private javax.swing.JFrame mediaInfoFrame;
     private javax.swing.JScrollPane mediaInfoScrollPane;
     private javax.swing.JTextArea mediaInfoTextArea;
     private javax.swing.JMenuBar menuBar;
+    private javax.swing.JDialog movieSearchDialog;
+    private javax.swing.JButton notFoundButton;
     private javax.swing.JMenu optionsMenu;
+    private javax.swing.JCheckBoxMenuItem originalAudioCheckBoxMenuItem;
     private javax.swing.JScrollPane outputScrollPane;
     private javax.swing.JProgressBar progressBar;
     private javax.swing.JButton removeButton;
-    private javax.swing.JFrame settingsFrame;
+    private javax.swing.JButton removeFilterButton;
+    private javax.swing.JButton searchButton;
+    private javax.swing.JList searchResList;
+    private javax.swing.JScrollPane searchResScrollPane;
+    private javax.swing.JTextField searchTextField;
+    private javax.swing.JButton selectButton;
+    private javax.swing.JDialog settingsDialog;
     private javax.swing.JMenuItem settingsMenuItem;
     private javax.swing.JLabel taskLabel;
     private javax.swing.JTextArea textArea;
@@ -537,9 +1010,65 @@ public class UploadCheckerView extends FrameView {
 
     private JDialog aboutBox;
 
-    private String url;
+    private File settingsDir;
 
-    private String dirPath;
+    private int maxImgWidth;
+    private int maxImgHeight;
+
+    private ImageCache imgsCache;
+
+    private SearchCache searchCache;
+
+    private LanguageCache languageCache;
+
+    private ReportCache repCache;
+
+    private String currentFile;
+
+    private static final MissingIcon MISSING_ICON = new MissingIcon();
+
+    private Integer movieFrameState;
+
+    private Settings settings;
+
+    private static final int IDLE = 0x01;
+    private static final int SEARCHING = 0x02;
+    private static final int FETCHING = 0x03;
+    private static final int SELECTING = 0x04;
+
+    private static final long SIZE_5MB = 5L*1024L*1024L;
+
+    private void setMovieFrameState(int state) {
+        synchronized(movieFrameState) {
+            movieFrameState = state;
+            //System.out.println(movieFrameState);
+        }
+    }
+
+    private boolean checkMovieFrameState(int state) {
+        synchronized(movieFrameState) {
+            return (movieFrameState == state);
+        }
+    }
+
+    private void setImgIcon(Icon ico) {
+        synchronized (imgLabel) {
+            if (ico == null) ico = MISSING_ICON;
+            movieSearchDialog.pack();
+            movieSearchDialog.remove(imgLabel);
+            imgLabel.setIcon(ico);
+            imgLabel.setBounds((int) ((movieSearchDialog.getSize().getWidth() -
+                    searchResScrollPane.getWidth()) / 2.0 +
+                    searchResScrollPane.getWidth() - ico.getIconWidth() / 2.0),
+                    (int) (searchResScrollPane.getHeight() / 2.0 -
+                    ico.getIconHeight() / 2.0), ico.getIconWidth(),
+                    ico.getIconHeight());
+            imgLabel.setPreferredSize(new Dimension(imgLabel.getSize()));
+            movieSearchDialog.add(imgLabel);
+            movieSearchDialog.validate();
+            movieSearchDialog.repaint();
+        }
+    }
 
     private Media.Type getCurrentType() {
         int index = comboBox.getSelectedIndex();
@@ -551,6 +1080,158 @@ public class UploadCheckerView extends FrameView {
                 case 2: return Media.Type.Movie720p;
                 case 3: return Media.Type.Animation720p;
                 default: return Media.Type.Movie1080p;
+            }
+        }
+    }
+
+    private void downloadImages(List<SearchResult> lsr,
+            int maxThreads, int logBase) {
+        if (lsr.size() == 0) return;
+        int d = (int)Math.ceil(Math.log(lsr.size())/Math.log(logBase * 1.0));
+        if (d == 0 || maxThreads == 1) {
+            /*WaitThread wt = new WaitThread(1);
+            wt.start();*/
+            new DownloadImagesThread(lsr,0,lsr.size()).start();
+        } else {
+            int step = (int) Math.ceil(lsr.size()/((d + 1)*1.0));
+            int threads = (int) Math.ceil(lsr.size()/(step*1.0));
+            //System.out.println(maxThreads + ", " + logBase + ", " + threads);
+            if (threads > maxThreads)
+                downloadImages(lsr, maxThreads, logBase*2);
+            else {
+                /*WaitThread wt = new WaitThread(threads);
+                wt.start();*/
+                int left = lsr.size();
+                int count = 0;
+                while(left > 0) {
+                    int start = lsr.size() - left;
+                    int end = Math.min(start + step, lsr.size());
+                    //System.out.println(start + " " + end);
+                    new DownloadImagesThread(
+                            lsr.subList(start,end),start,lsr.size()).start();
+                    left -= (end - start);
+                    count++;
+                }
+                //System.out.println("Created: " + count);
+            }
+        }
+    }
+
+    private class WaitThread extends Thread {
+        private int threads;
+        private ReentrantLock lock;
+        private Condition c;
+
+        public WaitThread(int threads) {
+            this.threads = threads;
+            lock = new ReentrantLock();
+            c = lock.newCondition();
+        }
+
+        @Override
+        public void run() {
+            lock.lock();
+            while (threads > 0) {
+                try {
+                    System.out.println("Threads " + threads);
+                    c.await();
+                } catch (InterruptedException ex) {
+                }
+            }
+            movieSearchDialog.setTitle("Movie Search [wait done]");
+            lock.unlock();
+        }
+
+        public void dec() {
+            lock.lock();
+            threads--;
+            c.signalAll();
+            lock.unlock();
+        }
+    }
+
+    private class DownloadImagesThread extends Thread {
+
+        private List<SearchResult> lsr;
+        private int start;
+        private int total;
+        //private WaitThread wt;
+
+        public DownloadImagesThread(List<SearchResult> lsr,
+                int start, int total/*, WaitThread wt*/) {
+            this.lsr = lsr;
+            this.start = start;
+            this.total = total;
+            //this.wt = wt;
+        }
+
+        @Override
+        public void run() {
+            try {
+                setMovieFrameState(FETCHING);
+                movieSearchDialog.setTitle("Movie Search [fetching images]");
+                int count = start;
+                for (SearchResult sr : lsr) {
+                    movieSearchDialog.setTitle("Movie Search [fetching image " +
+                            (count + 1) + "/" + total + "]");
+                    URL url = imgsCache.get(sr.movieID);
+                    if (url != null || sr.imgURL == null) {
+                        count++;
+                        continue;
+                    }
+                    BufferedImage orig = ImageIO.read(sr.imgURL);
+                    int origWidth = orig.getWidth();
+                    int origHeight = orig.getHeight();
+                    double wr = (origWidth * 1.0) / maxImgWidth;
+                    double hr = (origHeight * 1.0) / maxImgHeight;
+                    double max = Math.max(wr, hr);
+                    int newWidth = origWidth;
+                    int newHeight = origHeight;
+                    if (max > 1) {
+                        newWidth = (int) (origWidth / max);
+                        newHeight = (int) (origHeight / max);
+                    }
+                    BufferedImage img = null;
+                    if (newWidth != origWidth || newHeight != origHeight) {
+                        BufferedImage bimg = new BufferedImage(newWidth,
+                                                    newHeight, orig.getType());
+                        Graphics graphics = bimg.getGraphics();
+                        graphics.drawImage(orig, 0, 0, newWidth,
+                                            newHeight, null);
+                        img = bimg;
+                    } else {
+                        img = orig;
+                    }
+                    String urlAsString = sr.imgURL.toString();
+                    int index = urlAsString.lastIndexOf('.');
+                    URL newURL = sr.imgURL;
+                    if (index > 0) {
+                        String type = sr.imgURL.toString().substring(index + 1);
+                        newURL = new URL("file:\\" + 
+                                settingsDir.getAbsolutePath() + "\\" +
+                                sr.movieID + "." + type);
+                        ImageIO.write(img, type, new File(
+                                settingsDir.getAbsolutePath() + "\\" +
+                                sr.movieID + "." + type));
+                    }
+                    imgsCache.put(sr.movieID, newURL);
+                    count++;
+                    
+                    int selected = searchResList.getSelectedIndex();
+                    if (selected < 0) continue;
+                    DefaultListModel dlm =
+                            (DefaultListModel) searchResList.getModel();
+                    SearchResult r = (SearchResult) dlm.get(selected);
+                    if (r.movieID.equals(sr.movieID)) {
+                        BufferedImage image =
+                                ImageIO.read(imgsCache.get(sr.movieID));
+                        setImgIcon(new ImageIcon(image));
+                    }
+                }
+                movieSearchDialog.setTitle("Movie Search");
+                //wt.dec();
+                setMovieFrameState(IDLE);
+            } catch (Exception e) {
             }
         }
     }

@@ -5,16 +5,37 @@ which automatically checks an encode's MediaInfo output for DXVA and Awesome
 compliance.
 
 Compliance is indicated by outputing on the java swing the results
-'Not Good Enough', 'Good', 'Discouraged'
+`Not Good Enough`, `Good`, `Discouraged`
+
+Version
+=====
+1.4a to 1.5
+* added option for checking original audio via themoviedb and imdb
+* added search movie function
+* added filter option at settings for movie names
+* minor bug fixes
+1.4 to 1.4a
+* added check for frame rate
+* assume valid vbv when not found
+1.3 to 1.4
+* create torrent files
+1.2 to 1.3
+* option to see mediainfo output
+1.1 to 1.2
+* minor bug fixes
+1.0 to 1.1
+* minor bug fixes
 
 Install
 =====
 Just use one of the installers below according to your OS
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4a.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_4a.sh)
+[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_5.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_5.sh)
 
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4a.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_4a.exe)
+[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_5.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_5.exe)
+
+[http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_5.dmg](http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_5.dmg)
 
 Usage
 =====

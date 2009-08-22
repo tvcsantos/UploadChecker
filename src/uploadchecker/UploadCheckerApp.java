@@ -4,6 +4,8 @@
 
 package uploadchecker;
 
+import java.io.File;
+import java.net.URL;
 import org.gudy.azureus2.core3.security.SESecurityManager;
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;
@@ -13,11 +15,36 @@ import org.jdesktop.application.SingleFrameApplication;
  */
 public class UploadCheckerApp extends SingleFrameApplication {
 
+    public static final String USER_HOME = System.getProperty("user.home");
+
+    public static final String SETTINGS_DIR = ".uploadcheker";
+
+    public static final Runtime APP_RUNTIME = Runtime.getRuntime();
+
+    public static final URL APP_LOCATION = UploadCheckerApp.class.
+            getProtectionDomain().getCodeSource().getLocation();
+
     /**
      * At startup create and show the main frame of the application.
      */
     @Override protected void startup() {
+        clear();
         show(new UploadCheckerView(this));
+    }
+
+    private void clear() {
+        File dir = new File(USER_HOME, SETTINGS_DIR);
+        delete(dir);
+    }
+
+    private void delete(File f) {
+        if (f == null) return ;
+        String name = f.getName();
+        if (name.endsWith(".db") || name.endsWith(".cache")) return;
+        else if (f.isDirectory()) {
+            File[] files = f.listFiles();
+            for (File ff : files) delete(ff);
+        } else f.delete();
     }
 
     @Override protected void end() {

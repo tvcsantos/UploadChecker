@@ -19,11 +19,13 @@ public class Report {
     private File file;
     private Map<String, String> descs;
     private Result res;
+    private String mout;
 
     public Report(File file) {
         this.file = file;
         this.descs = new HashMap<String, String>();
         this.res = Result.NOTGOOD;
+        this.mout = null;
     }
 
     public void add(String prop, String msg) {
@@ -32,6 +34,14 @@ public class Report {
 
     public void setRes(Result res) {
         this.res = res;
+    }
+
+    public void setMediaInfoOutput(String mout) {
+        this.mout = mout;
+    }
+
+    public String getMediaInfoOutput() {
+        return mout;
     }
 
     public Result getResult() {
@@ -45,7 +55,7 @@ public class Report {
             s += e.getKey() + " : " + e.getValue() + "\n";
         }
         s += "Result: ";
-        switch (this.res) {
+        switch (res) {
             case NOTGOOD:
                 s += "Not Good Enough";
                 break;
