@@ -43,7 +43,6 @@ Just use one of the installers below according to your OS
 
 [http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_5.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_5.sh)
 
-
 [http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_5.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_5.exe)
 
 [http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_5.dmg](http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_5.dmg)
