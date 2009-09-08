@@ -21,7 +21,7 @@ public class UploadCheckerApp extends SingleFrameApplication {
 
     public static final String FILE_SEPARATOR = File.separator;
     
-    public static final String SETTINGS_DIR = ".uploadcheker";
+    public static final String SETTINGS_DIR = ".uploadchecker";
 
     public static final Runtime APP_RUNTIME = Runtime.getRuntime();
 

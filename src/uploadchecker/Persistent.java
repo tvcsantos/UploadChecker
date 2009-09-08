@@ -28,7 +28,6 @@ public class Persistent {
     	resurrect(String file, Class<T> c) 
     	throws FileNotFoundException, IOException,
     	ClassNotFoundException {
-        System.out.println(new File(file).getAbsolutePath());
     	ObjectInputStream ois = new ObjectInputStream(
     			new FileInputStream(file));
         T ret = c.cast(ois.readObject());

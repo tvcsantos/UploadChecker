@@ -85,10 +85,11 @@ public class UploadCheckerView extends FrameView {
         repCache = new ReportCache();
 
         try {
-            searchCache = Persistent.loadCache(settingsDir.getAbsolutePath()
+            /*searchCache = Persistent.loadCache(settingsDir.getAbsolutePath()
                                     + UploadCheckerApp.FILE_SEPARATOR +
                                     "search.cache", SearchCache.class,
-                                    SIZE_5MB);
+                                    SIZE_5MB);*/
+            searchCache = new SearchCache();
         } catch(Exception e) {
             
         }
@@ -252,9 +253,9 @@ public class UploadCheckerView extends FrameView {
         mainPanelLayout.setVerticalGroup(
             mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, mainPanelLayout.createSequentialGroup()
-                .addComponent(filesScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 120, Short.MAX_VALUE)
+                .addComponent(filesScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 119, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(outputScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 113, Short.MAX_VALUE)
+                .addComponent(outputScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 114, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(comboBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -323,6 +324,7 @@ public class UploadCheckerView extends FrameView {
         helpMenu.setName("helpMenu"); // NOI18N
 
         aboutMenuItem.setAction(actionMap.get("showAboutBox")); // NOI18N
+        aboutMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0));
         aboutMenuItem.setName("aboutMenuItem"); // NOI18N
         helpMenu.add(aboutMenuItem);
 
@@ -612,13 +614,24 @@ public class UploadCheckerView extends FrameView {
                     DefaultListModel dlm =
                             (DefaultListModel) filterList.getModel();
                     Enumeration<?> enume = dlm.elements();
+                    int matchSize = - Integer.MAX_VALUE;
+                    int matchPosition = - Integer.MAX_VALUE;
+                    int matchIndex = - Integer.MAX_VALUE;
+                    int count = 0;
                     while(enume.hasMoreElements()) {
-                        int pos = name.indexOf(
-                                ((String)enume.nextElement()).toLowerCase());
-                        if (pos < 0) continue;
-                        name = name.substring(0, pos);
-                        break;
+                        String element = (String) enume.nextElement();
+                        int pos = name.indexOf(element.toLowerCase());
+                        if (pos >= 0) {
+                            if (element.length() > matchSize) {
+                                matchSize = element.length();
+                                matchPosition = pos;
+                                matchIndex = count;
+                            }
+                        }
+                        count++;
                     }
+                    if (matchIndex >= 0)
+                        name = name.substring(0, matchPosition);
                     String replaced = name;
                     StringTokenizer st = new StringTokenizer(replaced, " .-");
                     String formated = "";
@@ -801,9 +814,9 @@ public class UploadCheckerView extends FrameView {
                         try {
                             List<SearchResult> sres = TMDbSearch.search(id);
                             searchCache.put(id, sres);
-                            Persistent.persist(settingsDir.getAbsolutePath()
+                            /*Persistent.persist(settingsDir.getAbsolutePath()
                                     + UploadCheckerApp.FILE_SEPARATOR
-                                    + "search.cache", searchCache);
+                                    + "search.cache", searchCache);*/
                             dlm.clear();
                             for (SearchResult sr : sres) {
                                 dlm.addElement(sr);
@@ -858,7 +871,7 @@ public class UploadCheckerView extends FrameView {
 
     private void notFoundButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_notFoundButtonActionPerformed
         //if (!checkMovieFrameState(IDLE)) return ;
-        System.out.println(evt);
+        //System.out.println(evt);
         if (currentFile == null) return;
         try {
             Media med = new Media(currentFile);
