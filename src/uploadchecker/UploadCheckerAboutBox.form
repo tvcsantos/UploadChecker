@@ -93,7 +93,7 @@
                       </Group>
                       <EmptySpace min="-2" max="-2" attributes="0"/>
                       <Group type="103" groupAlignment="3" attributes="0">
-                          <Component id="homepageLabel" alignment="3" max="32767" attributes="0"/>
+                          <Component id="homepageLabel" alignment="3" pref="14" max="32767" attributes="0"/>
                           <Component id="appHomepageLabel" alignment="3" max="32767" attributes="0"/>
                       </Group>
                       <EmptySpace max="-2" attributes="0"/>
@@ -191,7 +191,7 @@
             <Font bold="true" component="homepageLabel" property="font" relativeSize="true" size="0"/>
           </FontInfo>
         </Property>
-        <Property name="text" type="java.lang.String" resourceKey="dateLabel.text"/>
+        <Property name="text" type="java.lang.String" resourceKey="homepageLabel.text"/>
         <Property name="name" type="java.lang.String" value="dateLabel" noResource="true"/>
       </Properties>
       <AuxValues>
