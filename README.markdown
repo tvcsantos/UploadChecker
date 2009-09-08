@@ -9,6 +9,10 @@ Compliance is indicated by outputing on the java swing the results
 
 Version
 =====
+1.5 to 1.6
+
+* fixed linux problem, covers not working.
+
 1.4a to 1.5
 
 * added option for checking original audio via themoviedb and imdb
@@ -41,11 +45,11 @@ Install
 =====
 Just use one of the installers below according to your OS
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_5.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_5.sh)
+[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_6.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_6.sh)
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_5.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_5.exe)
+[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_6.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_6.exe)
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_5.dmg](http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_5.dmg)
+[http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_6.dmg](http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_6.dmg)
 
 Usage
 =====

@@ -17,6 +17,10 @@ public class UploadCheckerApp extends SingleFrameApplication {
 
     public static final String USER_HOME = System.getProperty("user.home");
 
+    public static final String USER_OS = System.getProperty("os.name");
+
+    public static final String FILE_SEPARATOR = File.separator;
+    
     public static final String SETTINGS_DIR = ".uploadcheker";
 
     public static final Runtime APP_RUNTIME = Runtime.getRuntime();

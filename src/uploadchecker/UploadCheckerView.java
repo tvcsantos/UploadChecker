@@ -55,7 +55,8 @@ public class UploadCheckerView extends FrameView {
 
         try {
             settings = Persistent.resurrect(settingsDir.getAbsolutePath()
-                                + "\\" + "settings.db", Settings.class);
+                                + UploadCheckerApp.FILE_SEPARATOR
+                                + "settings.db", Settings.class);
         } catch (Exception ex) {
             settings = new Settings();
         }
@@ -85,7 +86,8 @@ public class UploadCheckerView extends FrameView {
 
         try {
             searchCache = Persistent.loadCache(settingsDir.getAbsolutePath()
-                                    + "\\search.cache", SearchCache.class, 
+                                    + UploadCheckerApp.FILE_SEPARATOR +
+                                    "search.cache", SearchCache.class,
                                     SIZE_5MB);
         } catch(Exception e) {
             
@@ -93,7 +95,8 @@ public class UploadCheckerView extends FrameView {
 
         try {
             languageCache = Persistent.loadCache(settingsDir.getAbsolutePath()
-                                    + "\\langs.cache", LanguageCache.class,
+                                    + UploadCheckerApp.FILE_SEPARATOR +
+                                    "langs.cache", LanguageCache.class,
                                     SIZE_5MB);
         } catch(Exception e) {
 
@@ -729,7 +732,7 @@ public class UploadCheckerView extends FrameView {
 
                         //t.print();
 
-                        t.serialiseToBEncodedFile(new File(file.getParent() + "\\" + file.getName() + ".torrent"));
+                        t.serialiseToBEncodedFile(new File(file.getParent() + UploadCheckerApp.FILE_SEPARATOR + file.getName() + ".torrent"));
 
                         torrFrame.dispose();
 
@@ -798,8 +801,9 @@ public class UploadCheckerView extends FrameView {
                         try {
                             List<SearchResult> sres = TMDbSearch.search(id);
                             searchCache.put(id, sres);
-                            Persistent.persist(settingsDir.getAbsolutePath() +
-                                    "\\search.cache", searchCache);
+                            Persistent.persist(settingsDir.getAbsolutePath()
+                                    + UploadCheckerApp.FILE_SEPARATOR
+                                    + "search.cache", searchCache);
                             dlm.clear();
                             for (SearchResult sr : sres) {
                                 dlm.addElement(sr);
@@ -896,7 +900,8 @@ public class UploadCheckerView extends FrameView {
                             TMDbSearch.getOriginalLanguages(m);
                         languageCache.put(m.movieID, langs);
                         Persistent.persist(settingsDir.getAbsolutePath()
-                                    + "\\langs.cache", languageCache);
+                                    + UploadCheckerApp.FILE_SEPARATOR
+                                    + "langs.cache", languageCache);
                     }
                     med.setOriginalLanguages(langs);
                     Report res = med.check(getCurrentType());
@@ -929,7 +934,8 @@ public class UploadCheckerView extends FrameView {
             settings.addNameFilter(text);
             try {
                 Persistent.persist(settingsDir.getAbsolutePath()
-                                    + "\\settings.db", settings);
+                                    + UploadCheckerApp.FILE_SEPARATOR
+                                    + "settings.db", settings);
             } catch (Exception ex) {
 
             }
@@ -946,7 +952,8 @@ public class UploadCheckerView extends FrameView {
         settings.removeNameFilter(toRemove);
         try {
             Persistent.persist(settingsDir.getAbsolutePath()
-                                + "\\settings.db", settings);
+                                + UploadCheckerApp.FILE_SEPARATOR
+                                + "settings.db", settings);
         } catch (Exception ex) {
         }
     }//GEN-LAST:event_removeFilterButtonActionPerformed
@@ -961,7 +968,7 @@ public class UploadCheckerView extends FrameView {
                 String trim = announceTextField.getText().trim();
                 settings.setAnnounceURL(trim);
                 Persistent.persist(settingsDir.getAbsolutePath() +
-                        "\\" + "settings.db", settings);
+                        UploadCheckerApp.FILE_SEPARATOR + "settings.db", settings);
             } catch (Exception ex) { }
         }
     }//GEN-LAST:event_settingsDialogWindowClosing
@@ -1207,11 +1214,11 @@ public class UploadCheckerView extends FrameView {
                     URL newURL = sr.imgURL;
                     if (index > 0) {
                         String type = sr.imgURL.toString().substring(index + 1);
-                        newURL = new URL("file:\\" + 
-                                settingsDir.getAbsolutePath() + "\\" +
+                        newURL = new URL("file:///" +
+                                settingsDir.getAbsolutePath() + UploadCheckerApp.FILE_SEPARATOR +
                                 sr.movieID + "." + type);
                         ImageIO.write(img, type, new File(
-                                settingsDir.getAbsolutePath() + "\\" +
+                                settingsDir.getAbsolutePath() + UploadCheckerApp.FILE_SEPARATOR +
                                 sr.movieID + "." + type));
                     }
                     imgsCache.put(sr.movieID, newURL);

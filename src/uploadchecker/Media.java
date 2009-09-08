@@ -516,8 +516,11 @@ public class Media {
     }
 
     private void load() throws IOException {
-        String path = (new File(UploadCheckerApp.APP_LOCATION.getFile()).getParent() +
-                "\\prog\\MediaInfo.exe").replace("%20", " ");
+        String path = (new File(
+                UploadCheckerApp.APP_LOCATION.getFile()).getParent() +
+                UploadCheckerApp.FILE_SEPARATOR + "prog" +
+                UploadCheckerApp.FILE_SEPARATOR + "MediaInfo.exe")
+                    .replace("%20", " ");
         String osl = System.getProperty("os.name").toLowerCase();
         if (!osl.contains("windows")) {
             path = "mediainfo";
