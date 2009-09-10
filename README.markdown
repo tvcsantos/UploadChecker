@@ -9,6 +9,13 @@ Compliance is indicated by outputing on the java swing the results
 
 Version
 =====
+1.6 to 1.7
+
+* fixed ref frames problem (not working properly)
+* fixed Windows 7 open dialog icons missing
+* accept only mkv files
+* updated to MediaInfo v0.7.21
+
 1.5 to 1.6
 
 * fixed linux problem, covers not working.
@@ -45,11 +52,11 @@ Install
 =====
 Just use one of the installers below according to your OS
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_6.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_6.sh)
+[http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_7.sh](http://dl.getdropbox.com/u/230863/uploadchecker_unix_1_7.sh)
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_6.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_6.exe)
+[http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_7.exe](http://dl.getdropbox.com/u/230863/uploadchecker_windows_1_7.exe)
 
-[http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_6.dmg](http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_6.dmg)
+[http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_7.dmg](http://dl.getdropbox.com/u/230863/uploadchecker_macos_1_7.dmg)
 
 Usage
 =====

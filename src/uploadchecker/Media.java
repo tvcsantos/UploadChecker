@@ -32,6 +32,11 @@ public class Media {
     private String formatedInfo;
     private List<String> originalLanguages;
 
+    public static final int[][] MAX_1080p_HEIGHT =
+        { {720, 6}, {864, 5}, {1088, 4} };
+    public static final int[][] MAX_720p_HEIGHT =
+        { {540, 12}, {588, 11}, {648, 10}, {720, 9} };
+
     public Media(String file) throws IOException {
         this.file = new File(file);
         generalInfo = new General();
@@ -251,6 +256,27 @@ public class Media {
                 Double.parseDouble(value.replace("fps","").replace(" ",""));
         }
 
+        // calc max ref
+        int maxRef = -1;
+        switch(type) {
+            case Movie1080p:
+            case Animation1080p:
+                for (int[] h : MAX_1080p_HEIGHT)
+                    if (iheight <= h[0]) {
+                        maxRef = h[1];
+                        break;
+                    }
+                break;
+            case Movie720p:
+            case Animation720p:
+                for (int[] h : MAX_720p_HEIGHT)
+                    if (iheight <= h[0]) {
+                        maxRef = h[1];
+                        break;
+                    }
+                break;
+        }
+
         if (iwidth != width) {
             check[0]++;
             rep.add("width/height","Failed. Expecting width = " + width +
@@ -268,10 +294,14 @@ public class Media {
             rep.add("cabac", "Passed");
         }
         if (ref == -Integer.MAX_VALUE) ;
-        else if (ref < cref) {
+        else if (maxRef == -1) {
+            check[0]++;
+            rep.add("ref", "Failed. Expecting height <= " +
+                    height + " found height = " + iheight);
+        } else if (ref < cref || ref > maxRef) {
             check[0]++;
             rep.add("ref", "Failed. Expecting " +
-                    "ref >= " + cref +
+                    cref + " <= ref <= " + maxRef +
                     " found ref = " + ref);
         } else {
             rep.add("ref", "Passed");

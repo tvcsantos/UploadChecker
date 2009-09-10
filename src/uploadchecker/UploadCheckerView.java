@@ -4,6 +4,8 @@
 
 package uploadchecker;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.ItemEvent;
@@ -11,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import org.gudy.azureus2.core3.torrent.TOTorrentException;
 import org.jdesktop.application.Action;
 import org.jdesktop.application.SingleFrameApplication;
@@ -26,16 +29,20 @@ import javax.imageio.ImageIO;
 import javax.swing.DefaultListModel;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import org.gudy.azureus2.core3.torrent.TOTorrent;
 import org.gudy.azureus2.core3.torrent.TOTorrentCreator;
 import org.gudy.azureus2.core3.torrent.TOTorrentFactory;
 import org.gudy.azureus2.core3.torrent.TOTorrentProgressListener;
+import utils.AppUtils;
 
 /**
  * The application's main frame.
@@ -46,6 +53,22 @@ public class UploadCheckerView extends FrameView {
         super(app);
         
         initComponents();
+
+        if (UploadCheckerApp.USER_OS != null &&
+                UploadCheckerApp.USER_OS.toLowerCase().equals("windows 7")) {
+            Icon homeFolderIcon =
+                    getResourceMap().getIcon("Application.homeFolderIcon");
+            Icon upFolderIcon =
+                    getResourceMap().getIcon("Application.upFolderIcon");
+            Icon newFolderIcon =
+                    getResourceMap().getIcon("Application.newFolderIcon");
+            Icon listViewIcon =
+                    getResourceMap().getIcon("Application.listViewIcon");
+            Icon detailsViewIcon =
+                    getResourceMap().getIcon("Application.detailsViewIcon");
+            AppUtils.useWindows7FileChooserIcons(homeFolderIcon, upFolderIcon,
+                    newFolderIcon, listViewIcon, detailsViewIcon, fileChooser);
+        }
 
         getFrame().setResizable(false);
 
@@ -569,6 +592,13 @@ public class UploadCheckerView extends FrameView {
     }// </editor-fold>//GEN-END:initComponents
 
     private void addMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addMenuItemActionPerformed
+        fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+        FileNameExtensionFilter extensionFilter = 
+                AppUtils.getExtensionFilter("Matroska (.mkv)", "mkv");
+        fileChooser.setFileFilter(extensionFilter);
+        fileChooser.setSelectedFile(new File(""));
         int returnVal = fileChooser.showOpenDialog(this.getFrame());
 
         if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -576,6 +606,7 @@ public class UploadCheckerView extends FrameView {
             DefaultListModel model = (DefaultListModel) fileList.getModel();
             model.addElement(file.getAbsolutePath());
         }
+        fileChooser.removeChoosableFileFilter(extensionFilter);
     }//GEN-LAST:event_addMenuItemActionPerformed
 
     private void removeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeButtonActionPerformed
@@ -598,7 +629,8 @@ public class UploadCheckerView extends FrameView {
                 String s = (String) model.get(index);
 
                 File f = new File(s);
-                Pair<File, Media.Type> pair = new Pair<File, Media.Type>(f,getCurrentType());
+                Pair<File, Media.Type> pair =
+                        new Pair<File, Media.Type>(f,getCurrentType());
                 Report rep = repCache.get(pair);
                 if (rep == null) {
                 if (!originalAudioCheckBoxMenuItem.isSelected()) {
@@ -696,7 +728,8 @@ public class UploadCheckerView extends FrameView {
             final JProgressBar progressBar = new JProgressBar(0, 100);
             final JLabel taskLabel = new JLabel();
 
-            torrFrame.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+            torrFrame.setCursor(
+                    new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
             torrFrame.setName("torrFrame");
             torrFrame.setResizable(false);
 
@@ -704,12 +737,31 @@ public class UploadCheckerView extends FrameView {
 
             taskLabel.setName("taskLabel");
 
-            javax.swing.GroupLayout torrFrameLayout = new javax.swing.GroupLayout(torrFrame.getContentPane());
+            javax.swing.GroupLayout torrFrameLayout =
+                    new javax.swing.GroupLayout(torrFrame.getContentPane());
             torrFrame.getContentPane().setLayout(torrFrameLayout);
             torrFrameLayout.setHorizontalGroup(
-                    torrFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGroup(javax.swing.GroupLayout.Alignment.TRAILING, torrFrameLayout.createSequentialGroup().addContainerGap().addGroup(torrFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING).addComponent(taskLabel, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 187, Short.MAX_VALUE).addComponent(progressBar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 187, Short.MAX_VALUE)).addGap(10, 10, 10)));
+                    torrFrameLayout.createParallelGroup(
+                    javax.swing.GroupLayout.Alignment.LEADING).
+                    addGroup(javax.swing.GroupLayout.Alignment.TRAILING,
+                    torrFrameLayout.createSequentialGroup().addContainerGap().
+                    addGroup(torrFrameLayout.createParallelGroup(
+                    javax.swing.GroupLayout.Alignment.TRAILING).
+                    addComponent(taskLabel, javax.swing.GroupLayout.
+                    Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE,
+                    187, Short.MAX_VALUE).addComponent(progressBar,
+                    javax.swing.GroupLayout.Alignment.LEADING,
+                    javax.swing.GroupLayout.DEFAULT_SIZE, 187,
+                    Short.MAX_VALUE)).addGap(10, 10, 10)));
             torrFrameLayout.setVerticalGroup(
-                    torrFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING).addGroup(torrFrameLayout.createSequentialGroup().addContainerGap().addComponent(taskLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 14, Short.MAX_VALUE).addGap(9, 9, 9).addComponent(progressBar, javax.swing.GroupLayout.DEFAULT_SIZE, 24, Short.MAX_VALUE).addContainerGap()));
+                    torrFrameLayout.createParallelGroup(
+                    javax.swing.GroupLayout.Alignment.LEADING).
+                    addGroup(torrFrameLayout.createSequentialGroup().
+                    addContainerGap().addComponent(taskLabel,
+                    javax.swing.GroupLayout.DEFAULT_SIZE, 14, Short.MAX_VALUE).
+                    addGap(9, 9, 9).addComponent(progressBar,
+                    javax.swing.GroupLayout.DEFAULT_SIZE, 24, Short.MAX_VALUE).
+                    addContainerGap()));
 
             progressBar.setValue(0);
             torrFrame.setResizable(false);
@@ -723,18 +775,21 @@ public class UploadCheckerView extends FrameView {
                 @Override
                 public void run() {
                     try {
-                        TOTorrentProgressListener list = new TOTorrentProgressListener() {
+                        TOTorrentProgressListener list =
+                                new TOTorrentProgressListener() {
 
                             public void reportProgress(int p) {
                                 progressBar.setValue(p);
                             }
 
-                            public void reportCurrentTask(String task_description) {
+                            public void reportCurrentTask(
+                                    String task_description) {
                                 taskLabel.setText("Task: " + task_description);
                             }
                         };
 
-                        TOTorrentCreator c = TOTorrentFactory.createFromFileOrDirWithFixedPieceLength(
+                        TOTorrentCreator c = TOTorrentFactory.
+                                createFromFileOrDirWithFixedPieceLength(
                                 file, announceURL, 4 * 1024 * 1024);
 
                         c.addListener(list);
@@ -745,14 +800,21 @@ public class UploadCheckerView extends FrameView {
 
                         //t.print();
 
-                        t.serialiseToBEncodedFile(new File(file.getParent() + UploadCheckerApp.FILE_SEPARATOR + file.getName() + ".torrent"));
+                        t.serialiseToBEncodedFile(new File(file.getParent() + 
+                                UploadCheckerApp.FILE_SEPARATOR +
+                                file.getName() + ".torrent"));
 
                         torrFrame.dispose();
 
-                        JOptionPane.showMessageDialog(UploadCheckerView.this.getFrame(), "Torrent Complete",
+                        JOptionPane.showMessageDialog(
+                                UploadCheckerView.this.getFrame(),
+                                "Torrent Complete",
                                 "Done!", JOptionPane.INFORMATION_MESSAGE);
                     } catch (TOTorrentException ex) {
-                        Logger.getLogger(UploadCheckerView.class.getName()).log(Level.SEVERE, null, ex);
+                        JOptionPane.showMessageDialog(
+                                UploadCheckerView.this.getFrame(),
+                                ex.toString(),
+                                "Error!", JOptionPane.INFORMATION_MESSAGE);
                     }
                 }
             }.start();
@@ -981,7 +1043,8 @@ public class UploadCheckerView extends FrameView {
                 String trim = announceTextField.getText().trim();
                 settings.setAnnounceURL(trim);
                 Persistent.persist(settingsDir.getAbsolutePath() +
-                        UploadCheckerApp.FILE_SEPARATOR + "settings.db", settings);
+                        UploadCheckerApp.FILE_SEPARATOR +
+                        "settings.db", settings);
             } catch (Exception ex) { }
         }
     }//GEN-LAST:event_settingsDialogWindowClosing
@@ -1228,10 +1291,12 @@ public class UploadCheckerView extends FrameView {
                     if (index > 0) {
                         String type = sr.imgURL.toString().substring(index + 1);
                         newURL = new URL("file:///" +
-                                settingsDir.getAbsolutePath() + UploadCheckerApp.FILE_SEPARATOR +
+                                settingsDir.getAbsolutePath() +
+                                UploadCheckerApp.FILE_SEPARATOR +
                                 sr.movieID + "." + type);
                         ImageIO.write(img, type, new File(
-                                settingsDir.getAbsolutePath() + UploadCheckerApp.FILE_SEPARATOR +
+                                settingsDir.getAbsolutePath() +
+                                UploadCheckerApp.FILE_SEPARATOR +
                                 sr.movieID + "." + type));
                     }
                     imgsCache.put(sr.movieID, newURL);

@@ -9,24 +9,25 @@ import java.net.URL;
 import org.gudy.azureus2.core3.security.SESecurityManager;
 import org.jdesktop.application.Application;
 import org.jdesktop.application.SingleFrameApplication;
+import utils.AppUtils;
 
 /**
  * The main class of the application.
  */
 public class UploadCheckerApp extends SingleFrameApplication {
 
-    public static final String USER_HOME = System.getProperty("user.home");
+    public static final String USER_HOME = AppUtils.USER_HOME;
 
-    public static final String USER_OS = System.getProperty("os.name");
+    public static final String USER_OS = AppUtils.USER_OS;
 
-    public static final String FILE_SEPARATOR = File.separator;
+    public static final String FILE_SEPARATOR = AppUtils.FILE_SEPARATOR;
     
     public static final String SETTINGS_DIR = ".uploadchecker";
 
-    public static final Runtime APP_RUNTIME = Runtime.getRuntime();
+    public static final Runtime APP_RUNTIME = AppUtils.APP_RUNTIME;
 
-    public static final URL APP_LOCATION = UploadCheckerApp.class.
-            getProtectionDomain().getCodeSource().getLocation();
+    public static final URL APP_LOCATION = AppUtils.getLocation(
+            UploadCheckerApp.class);
 
     /**
      * At startup create and show the main frame of the application.
