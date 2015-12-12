@@ -70,10 +70,10 @@ admin rights.
 
 Developed By
 ============
-* Tiago Santos - <camon.pt@gmail.com>
+* Tiago Santos - <tvcsantos@gmail.com>
 
 Git repository located at
-[github.com/camon/UploadChecker/](http://github.com/camon/UploadChecker/)
+[github.com/tvcsantos/UploadChecker/](http://github.com/tvcsantos/UploadChecker/)
 
 
 License
