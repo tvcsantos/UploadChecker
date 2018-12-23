@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='UTF-8'?>
+
+<!--
+    TODO define vocabulary identification
+    PUBLIC ID: -//vendor//vocabulary//EN
+    SYSTEM ID: http://server/path/properties.dtd
+
+-->
+
+<!--
+    An example how to use this DTD from your XML document:
+
+    <?xml version="1.0"?>
+
+    <!DOCTYPE properties SYSTEM "properties.dtd">
+
+    <properties>
+    ...
+    </properties>
+-->
+
+<!--- Put your DTDDoc comment here. -->
+<!ELEMENT properties (comment?,property*)>
+
+<!--- Put your DTDDoc comment here. -->
+<!ELEMENT comment (#PCDATA)>
+
+<!--- Put your DTDDoc comment here. -->
+<!ELEMENT property (property)*>
+<!ATTLIST property
+    value CDATA #IMPLIED
+    key CDATA #IMPLIED
+  >
