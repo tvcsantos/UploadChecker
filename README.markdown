@@ -56,6 +56,16 @@ Developed By
 ============
 * Tiago Santos - <tvcsantos@gmail.com>
 
+Build
+============
+Dependencies to my repositories:
+* https://github.com/tvcsantos/javautils/tree/v1.1.0
+* https://github.com/tvcsantos/javafwutils/tree/v1.0
+* https://github.com/tvcsantos/javamediautils/tree/v1.0
+
+Also you must install the extra jar `Azureus4.2.0.4.jar` in your 
+local maven repository in order to build this project properly
+
 License
 =======
     Upload Chekcer - Simple Java Swing application to check encodes
